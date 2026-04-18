@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SC Monitor</title>
+<title>SC Monitor v4.0 - GPU & FPS</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg0:#05080d;--bg1:#080d14;--bg2:#0c1220;--border:#1a2a3a;--border2:#1e3348;--text:#c8d8e8;--muted:#4a6070;--dim:#2a3a4a;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--blue:#38bdf8;--purple:#a78bfa;--cyan:#06b6d4;--mono:'Share Tech Mono',monospace;--head:'Rajdhani',sans-serif;}
@@ -42,10 +42,10 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
 .alert{margin:8px 20px 0;padding:8px 14px;border-radius:3px;font-family:var(--mono);font-size:12px;display:none;align-items:center;gap:8px;}
 .alert.warn{background:#1a1200;border:1px solid #f59e0b44;color:var(--yellow);display:flex;}
 .alert.err{background:#1a0505;border:1px solid #ef444444;color:var(--red);display:flex;}
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);margin:12px 20px 0;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);margin:12px 20px 0;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
 .metric{background:var(--bg1);padding:14px 18px;position:relative;}
 .metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--dim));}
-.m-cpu{--ac:var(--yellow);}.m-gpu{--ac:var(--blue);}.m-ram{--ac:var(--purple);}.m-sc{--ac:var(--green);}
+.m-cpu{--ac:var(--yellow);}.m-gpu{--ac:var(--blue);}.m-ram{--ac:var(--purple);}.m-sc{--ac:var(--green);}.m-fps{--ac:var(--cyan);}
 .m-label{font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;}
 .m-val{font-size:36px;font-weight:700;line-height:1;font-family:var(--mono);}
 .m-unit{font-size:13px;color:var(--muted);margin-left:2px;}
@@ -69,63 +69,21 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
 .tb{background:var(--bg0);border-radius:2px;height:4px;overflow:hidden;}
 .tf{height:100%;border-radius:2px;transition:width .4s;}
 .tp{font-size:11px;font-family:var(--mono);color:var(--muted);text-align:right;}
-.sum-back{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:600;display:none;align-items:center;justify-content:center;overflow-y:auto;padding:20px;}
-.sum-box{background:var(--bg1);border:1px solid var(--border2);border-radius:8px;width:520px;max-width:100%;padding:26px 30px;}
-.sum-title{font-size:20px;font-weight:700;letter-spacing:4px;color:var(--cyan);margin-bottom:4px;}
-.sum-date{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:18px;}
-.sum-specs{font-size:11px;color:var(--muted);font-family:var(--mono);margin-bottom:16px;padding:8px 12px;background:var(--bg2);border-radius:4px;line-height:1.8;}
-.sum-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;}
-.ss{background:var(--bg2);border-radius:4px;padding:12px 14px;}
-.ssl{font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:4px;}
-.ssv{font-size:22px;font-weight:700;font-family:var(--mono);}
-.sum-sec{margin-bottom:14px;}
-.sum-sec-t{font-size:10px;letter-spacing:3px;color:var(--muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
-.sum-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;padding:5px 0;border-bottom:1px solid var(--bg2);}
-.sum-rl{color:var(--muted);}.sum-rv{font-weight:700;}
-.sum-btns{display:flex;gap:10px;margin-top:18px;}
-.dl-btn{flex:1;background:var(--cyan);border:none;color:#000;font-family:var(--head);font-size:13px;font-weight:700;letter-spacing:2px;padding:10px;border-radius:4px;cursor:pointer;}
-.dl-btn:hover{opacity:.85;}
-.cl-btn{flex:1;background:transparent;border:1px solid var(--border2);color:var(--muted);font-family:var(--head);font-size:13px;font-weight:700;letter-spacing:2px;padding:10px;border-radius:4px;cursor:pointer;}
-.cl-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+.bottleneck{display:inline-block;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:bold;margin-left:8px;}
+.bottleneck.cpu{background:var(--yellow);color:#000;}
+.bottleneck.gpu{background:var(--blue);color:#000;}
+.bottleneck.both{background:var(--red);color:#fff;}
+.bottleneck.balanced{background:var(--green);color:#000;}
 </style>
 </head>
 <body>
 <div class="scan"></div>
 
-<!-- Session Summary Modal -->
-<div class="sum-back" id="sum-modal">
-  <div class="sum-box">
-    <div class="sum-title">SESSION REPORT</div>
-    <div class="sum-date" id="sr-date"></div>
-    <div class="sum-specs" id="sr-specs"></div>
-    <div class="sum-grid">
-      <div class="ss"><div class="ssl">AVG CPU</div><div class="ssv" id="sr-avg-cpu" style="color:var(--yellow)">--</div></div>
-      <div class="ss"><div class="ssl">AVG GPU</div><div class="ssv" id="sr-avg-gpu" style="color:var(--blue)">--</div></div>
-      <div class="ss"><div class="ssl">AVG RAM</div><div class="ssv" id="sr-avg-ram" style="color:var(--purple)">--</div></div>
-      <div class="ss"><div class="ssl">PEAK CPU</div><div class="ssv" id="sr-peak-cpu" style="color:var(--red)">--</div></div>
-      <div class="ss"><div class="ssl">PEAK GPU</div><div class="ssv" id="sr-peak-gpu" style="color:var(--red)">--</div></div>
-      <div class="ss"><div class="ssl">DURATION</div><div class="ssv" id="sr-dur" style="color:var(--muted)">--</div></div>
-    </div>
-    <div class="sum-sec">
-      <div class="sum-sec-t">PERFORMANCE BREAKDOWN</div>
-      <div class="sum-row"><span class="sum-rl">CPU above 90% (heavy load)</span><span class="sum-rv" id="sr-cpu90">--</span></div>
-      <div class="sum-row"><span class="sum-rl">GPU above 90% (GPU bound)</span><span class="sum-rv" id="sr-gpu90">--</span></div>
-      <div class="sum-row"><span class="sum-rl">RAM above 85%</span><span class="sum-rv" id="sr-ram85">--</span></div>
-      <div class="sum-row"><span class="sum-rl">Peak GPU temp</span><span class="sum-rv" id="sr-peak-temp">--</span></div>
-      <div class="sum-row"><span class="sum-rl">SC peak RAM usage</span><span class="sum-rv" id="sr-sc-ram">--</span></div>
-    </div>
-    <div class="sum-btns">
-      <button class="dl-btn" onclick="downloadReport()">DOWNLOAD REPORT</button>
-      <button class="cl-btn" onclick="closeSummary()">CLOSE</button>
-    </div>
-  </div>
-</div>
-
 <header>
   <div class="logo">
     <div class="logo-mark">SC</div>
     <div>
-      <div class="logo-text">STAR CITIZEN MONITOR</div>
+      <div class="logo-text">STAR CITIZEN MONITOR <span id="bottleneck-badge" style="font-size:10px;"></span></div>
       <div class="logo-sub" id="specs-line">CONNECT COMPANION TO DETECT SPECS</div>
     </div>
   </div>
@@ -163,6 +121,11 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
 </div>
 
 <div class="metrics">
+  <div class="metric m-fps">
+    <div class="m-label">FPS</div>
+    <div><span class="m-val" id="v-fps" style="color:var(--cyan)">--</span><span class="m-unit">FPS</span></div>
+    <div class="m-sub" id="v-fps-sub">-- ms frame time</div>
+  </div>
   <div class="metric m-cpu">
     <div class="m-label">CPU USAGE</div>
     <div><span class="m-val" id="v-cpu-pct" style="color:var(--yellow)">--</span><span class="m-unit">%</span></div>
@@ -171,7 +134,7 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
   <div class="metric m-gpu">
     <div class="m-label">GPU USAGE</div>
     <div><span class="m-val" id="v-gpu-pct" style="color:var(--blue)">--</span><span class="m-unit">%</span></div>
-    <div class="m-sub" id="v-gpu-sub">-- GB VRAM</div>
+    <div class="m-sub" id="v-gpu-sub">-- / -- GB</div>
   </div>
   <div class="metric m-ram">
     <div class="m-label">RAM USAGE</div>
@@ -192,16 +155,17 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
       <div class="cl">
         <span class="cli"><span class="cld" style="background:var(--yellow)"></span>cpu</span>
         <span class="cli"><span class="cld" style="background:var(--blue)"></span>gpu</span>
+        <span class="cli"><span class="cld" style="background:var(--cyan)"></span>fps</span>
       </div>
     </div>
     <div style="position:relative;height:150px"><canvas id="c-usage" role="img" aria-label="CPU and GPU usage over time">Usage</canvas></div>
   </div>
   <div class="cw">
     <div class="ch">
-      <span class="ct">RAM %</span>
+      <span class="ct">RAM &amp; FPS</span>
       <div class="cl">
-        <span class="cli"><span class="cld" style="background:var(--purple)"></span>sys ram</span>
-        <span class="cli"><span class="cld" style="background:var(--green)"></span>sc GB</span>
+        <span class="cli"><span class="cld" style="background:var(--purple)"></span>ram %</span>
+        <span class="cli"><span class="cld" style="background:var(--green)"></span>sc gb</span>
       </div>
     </div>
     <div style="position:relative;height:150px"><canvas id="c-ram" role="img" aria-label="RAM usage over time">RAM</canvas></div>
@@ -213,7 +177,7 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
     <div class="pt"><span>SYSTEM</span><span id="v-sess" style="font-family:var(--mono);font-size:11px;color:var(--dim)">--:--</span></div>
     <div class="pg">
       <div class="ps"><div class="psl">GPU TEMP</div><div class="psv" id="v-gpu-temp" style="color:var(--blue)">-- °C</div></div>
-      <div class="ps"><div class="psl">VRAM USED</div><div class="psv" id="v-vram" style="color:var(--cyan)">-- GB</div></div>
+      <div class="ps"><div class="psl">GPU NAME</div><div class="psv" id="v-gpu-name" style="color:var(--cyan);font-size:11px;">--</div></div>
       <div class="ps"><div class="psl">SC PID</div><div class="psv" id="v-pid" style="color:var(--muted)">--</div></div>
     </div>
     <div class="tr"><span class="tn">CPU</span><div class="tb"><div class="tf" id="bar-cpu" style="background:var(--yellow);width:0%"></div></div><span class="tp" id="pct-cpu">--%</span></div>
@@ -233,27 +197,28 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
 let ws=null, paused=false, histMax=120, simTimer=null, isConnected=false;
 let sessionStart=Date.now(), sessionEndTime=null, sessionSpecs=null;
 let peakCpuTemp=0, peakGpuTemp=0, peakScRam=0;
-let notableEvents=[];
-const hist={cpu:[],gpu:[],ram:[],scRam:[],temps:[],labels:[]};
+const hist={cpu:[],gpu:[],ram:[],scRam:[],fps:[],labels:[]};
 
 // ── Charts ─────────────────────────────────────────────────────────────────
 const cUsage=new Chart(document.getElementById('c-usage'),{
   type:'line',
   data:{labels:[],datasets:[
-    {data:[],borderColor:'#f59e0b',backgroundColor:'#f59e0b0d',borderWidth:1.5,pointRadius:0,fill:true,tension:.3},
-    {data:[],borderColor:'#38bdf8',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[4,3]}
+    {data:[],borderColor:'#f59e0b',backgroundColor:'#f59e0b0d',borderWidth:1.5,pointRadius:0,fill:true,tension:.3,yAxisID:'y',label:'CPU %'},
+    {data:[],borderColor:'#38bdf8',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[4,3],yAxisID:'y',label:'GPU %'},
+    {data:[],borderColor:'#06b6d4',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,yAxisID:'y1',label:'FPS'}
   ]},
   options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
-    scales:{x:{display:false},y:{min:0,max:100,grid:{color:'#1a2a3a'},ticks:{color:'#4a6070',font:{size:10},callback:v=>v+'%'}}}}
+    scales:{x:{display:false},y:{min:0,max:100,grid:{color:'#1a2a3a'},ticks:{color:'#4a6070',font:{size:10},callback:v=>v+'%'}},
+           y1:{position:'right',min:0,max:144,grid:{display:false},ticks:{color:'#06b6d4',font:{size:10},callback:v=>v+' fps'}}}}
 });
 const cRam=new Chart(document.getElementById('c-ram'),{
   type:'line',
   data:{labels:[],datasets:[
-    {data:[],borderColor:'#a78bfa',backgroundColor:'#a78bfa0d',borderWidth:1.5,pointRadius:0,fill:true,tension:.3},
-    {data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[4,3]}
+    {data:[],borderColor:'#a78bfa',backgroundColor:'#a78bfa0d',borderWidth:1.5,pointRadius:0,fill:true,tension:.3,label:'RAM %'},
+    {data:[],borderColor:'#22c55e',backgroundColor:'transparent',borderWidth:1.5,pointRadius:0,tension:.3,borderDash:[4,3],label:'SC GB'}
   ]},
   options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
-    scales:{x:{display:false},y:{min:0,grid:{color:'#1a2a3a'},ticks:{color:'#4a6070',font:{size:10}}}}}
+    scales:{x:{display:false},y:{min:0,grid:{color:'#1a2a3a'},ticks:{color:'#4a6070',font:{size:10},callback:v=>v+'%'}}}}
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -261,17 +226,24 @@ function pctCol(v){return v<60?'#22c55e':v<85?'#f59e0b':'#ef4444';}
 function ts(){return new Date().toLocaleTimeString('en-US',{hour12:false});}
 function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:0;}
 
-function addPoint(cpu,gpu,ram,scRam){
+function addPoint(cpu,gpu,ram,scRam,fps){
   const label=ts();
-  hist.cpu.push(cpu);hist.gpu.push(gpu);hist.ram.push(ram);hist.scRam.push(scRam);hist.labels.push(label);
-  if(hist.cpu.length>histMax){hist.cpu.shift();hist.gpu.shift();hist.ram.shift();hist.scRam.shift();hist.labels.shift();}
-  cUsage.data.labels=hist.labels;cUsage.data.datasets[0].data=hist.cpu;cUsage.data.datasets[1].data=hist.gpu;cUsage.update('none');
-  cRam.data.labels=hist.labels;cRam.data.datasets[0].data=hist.ram;cRam.data.datasets[1].data=hist.scRam;cRam.update('none');
+  hist.cpu.push(cpu);hist.gpu.push(gpu);hist.ram.push(ram);hist.scRam.push(scRam);hist.fps.push(fps);hist.labels.push(label);
+  if(hist.cpu.length>histMax){hist.cpu.shift();hist.gpu.shift();hist.ram.shift();hist.scRam.shift();hist.fps.shift();hist.labels.shift();}
+  cUsage.data.labels=hist.labels;
+  cUsage.data.datasets[0].data=hist.cpu;
+  cUsage.data.datasets[1].data=hist.gpu;
+  cUsage.data.datasets[2].data=hist.fps;
+  cUsage.update('none');
+  cRam.data.labels=hist.labels;
+  cRam.data.datasets[0].data=hist.ram;
+  cRam.data.datasets[1].data=hist.scRam;
+  cRam.update('none');
 }
 
 function clearCharts(){
-  ['cpu','gpu','ram','scRam','temps','labels'].forEach(k=>hist[k].length=0);
-  cUsage.data.labels=[];cUsage.data.datasets[0].data=[];cUsage.data.datasets[1].data=[];
+  ['cpu','gpu','ram','scRam','fps','labels'].forEach(k=>hist[k].length=0);
+  cUsage.data.labels=[];cUsage.data.datasets[0].data=[];cUsage.data.datasets[1].data=[];cUsage.data.datasets[2].data=[];
   cRam.data.labels=[];cRam.data.datasets[0].data=[];cRam.data.datasets[1].data=[];
   cUsage.update();cRam.update();
 }
@@ -279,21 +251,30 @@ function clearCharts(){
 // ── Metrics ────────────────────────────────────────────────────────────────
 function updateMetrics(d){
   if(paused)return;
-  const cpu=d.sys_cpu_pct||0, gpu=d.gpu_pct||0, ram=d.sys_ram_pct||0;
+  const fps=d.fps||0, cpu=d.sys_cpu_pct||0, gpu=d.gpu_pct||0, ram=d.sys_ram_pct||0;
   const scRamMb=d.proc_ram_mb||0, scRamGb=scRamMb>0?+(scRamMb/1024).toFixed(2):0;
   const vramUsed=d.gpu_mem_used_gb||0, vramTotal=d.gpu_mem_total_gb||0;
-  const temp=d.gpu_temp||0;
+  const temp=d.gpu_temp||0, gpuName=d.gpu_name||'Unknown';
+  const bottleneck=d.bottleneck||'unknown';
 
   if(temp>peakGpuTemp) peakGpuTemp=temp;
   if(scRamMb>peakScRam) peakScRam=scRamMb;
 
+  // Update bottleneck badge
+  const badge=document.getElementById('bottleneck-badge');
+  if(bottleneck!='unknown'){
+    badge.innerHTML=` <span class="bottleneck ${bottleneck}">${bottleneck.toUpperCase()} BOUND</span>`;
+  } else { badge.innerHTML=''; }
+
   // Cards
+  document.getElementById('v-fps').textContent=fps>0?fps:'--';
+  document.getElementById('v-fps-sub').textContent=d.frame_ms?d.frame_ms.toFixed(1)+' ms frame time':'-- ms';
   document.getElementById('v-cpu-pct').textContent=cpu;
   document.getElementById('v-cpu-pct').style.color=pctCol(cpu);
   document.getElementById('v-cpu-sub').textContent=(d.sys_cpu_per_core||[]).filter(c=>c>5).length+' cores active';
   document.getElementById('v-gpu-pct').textContent=gpu;
   document.getElementById('v-gpu-pct').style.color=pctCol(gpu);
-  document.getElementById('v-gpu-sub').textContent=vramUsed>0?vramUsed+' / '+vramTotal+' GB VRAM':'VRAM unavailable';
+  document.getElementById('v-gpu-sub').textContent=vramUsed>0?vramUsed+' / '+vramTotal+' GB':(gpuName!='Unknown'?gpuName:'VRAM unavailable'));
   document.getElementById('v-ram-pct').textContent=ram;
   document.getElementById('v-ram-pct').style.color=pctCol(ram);
   document.getElementById('v-ram-sub').textContent=(d.sys_ram_used_gb||0)+' / '+(d.sys_ram_total_gb||0)+' GB';
@@ -310,7 +291,7 @@ function updateMetrics(d){
   // Stats row
   document.getElementById('v-gpu-temp').textContent=temp>0?temp+'°C':'--°C';
   document.getElementById('v-gpu-temp').style.color=temp>85?'#ef4444':temp>75?'#f59e0b':'#38bdf8';
-  document.getElementById('v-vram').textContent=vramUsed>0?vramUsed+' GB':'-- GB';
+  document.getElementById('v-gpu-name').textContent=gpuName.length>20?gpuName.substring(0,20):gpuName;
   document.getElementById('v-pid').textContent=d.pid||'--';
   const sess=Math.floor((Date.now()-sessionStart)/1000);
   document.getElementById('v-sess').textContent=String(Math.floor(sess/60)).padStart(2,'0')+':'+String(sess%60).padStart(2,'0');
@@ -340,21 +321,21 @@ function updateMetrics(d){
   }
 
   showAlert(cpu,gpu,temp);
-  addPoint(cpu,gpu,ram,scRamGb);
+  addPoint(cpu,gpu,ram,scRamGb,fps);
 }
 
 function showAlert(cpu,gpu,temp){
   const el=document.getElementById('alert-box');
-  if(temp>90)    {el.className='alert err'; el.textContent='GPU TEMP CRITICAL: '+temp+'C — check cooling';el.style.display='flex';}
+  if(temp>90)    {el.className='alert err'; el.textContent='GPU TEMP CRITICAL: '+temp+'°C — check cooling';el.style.display='flex';}
   else if(cpu>90){el.className='alert warn';el.textContent='CPU MAXED: '+cpu+'% — heavy load';el.style.display='flex';}
   else if(gpu>95){el.className='alert warn';el.textContent='GPU MAXED: '+gpu+'%';el.style.display='flex';}
   else           {el.style.display='none';}
 }
 
 function resetDisplays(){
-  ['v-cpu-pct','v-gpu-pct','v-ram-pct','v-proc-ram'].forEach(id=>document.getElementById(id).textContent='--');
+  ['v-fps','v-cpu-pct','v-gpu-pct','v-ram-pct','v-proc-ram'].forEach(id=>document.getElementById(id).textContent='--');
   document.getElementById('v-cpu-sub').textContent='-- cores active';
-  document.getElementById('v-gpu-sub').textContent='-- GB VRAM';
+  document.getElementById('v-gpu-sub').textContent='-- / -- GB';
   document.getElementById('v-ram-sub').textContent='-- / -- GB';
   document.getElementById('v-proc-sub').textContent='not detected';
   document.getElementById('alert-box').style.display='none';
@@ -365,8 +346,8 @@ function resetDisplays(){
 function setPaused(v){paused=v;document.getElementById('btn-live').classList.toggle('on',!v);document.getElementById('btn-pause').classList.toggle('on',v);}
 
 function exportCSV(){
-  const rows=[['Time','CPU_%','GPU_%','RAM_%','SC_RAM_GB']];
-  for(let i=0;i<hist.cpu.length;i++) rows.push([hist.labels[i],hist.cpu[i],hist.gpu[i],hist.ram[i],hist.scRam[i]]);
+  const rows=[['Time','FPS','CPU_%','GPU_%','RAM_%','SC_RAM_GB']];
+  for(let i=0;i<hist.cpu.length;i++) rows.push([hist.labels[i],hist.fps[i],hist.cpu[i],hist.gpu[i],hist.ram[i],hist.scRam[i]]);
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
   a.download='sc_perf_'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.csv';a.click();
@@ -377,7 +358,7 @@ function doConnect(){
   const raw=document.getElementById('id-input').value.trim().toUpperCase();
   if(!raw){document.getElementById('id-input').style.borderColor='var(--red)';return;}
   document.getElementById('id-input').style.borderColor='var(--cyan)';
-  const url=(raw.startsWith('WS://')||raw.startsWith('ws://'))?raw:'ws://localhost:8765';
+  const url='ws://localhost:8765';
   stopSim();
   document.getElementById('dot').className='dot warn';
   document.getElementById('conn-label').textContent='CONNECTING...';
@@ -401,7 +382,7 @@ function doConnect(){
       document.getElementById('disc-area').style.display='none';
       document.getElementById('sim-pill').style.display='';
       document.getElementById('specs-line').textContent='CONNECT COMPANION TO DETECT SPECS';
-      showSummary();clearCharts();resetDisplays();startSim();
+      clearCharts();resetDisplays();startSim();
     };
     ws.onerror=function(){
       isConnected=false;
@@ -421,11 +402,11 @@ function doConnect(){
           if(d.specs){
             sessionSpecs=d.specs;
             const s=d.specs;
-            const parts=[s.cpu,s.gpu,s.ram_gb?s.ram_gb+'GB':''].filter(Boolean);
-            document.getElementById('specs-line').textContent=parts.join(' · ').toUpperCase();
+            const parts=[s.cpu,s.gpu,s.ram_gb?s.ram_gb+'GB':'',s.gpu].filter(Boolean);
+            document.getElementById('specs-line').innerHTML=parts.join(' · ').toUpperCase();
           }
         }
-      }catch(err){}
+      }catch(err){console.error(err);}
     };
   }catch(err){
     document.getElementById('dot').className='dot err';
@@ -436,7 +417,7 @@ function doConnect(){
 
 function doDisconnect(){if(ws)ws.close();}
 
-// ── Simulation ─────────────────────────────────────────────────────────────
+// ── Simulation (fallback) ─────────────────────────────────────────────────
 function startSim(){
   if(simTimer||isConnected)return;
   simTimer=setInterval(function(){
@@ -445,6 +426,7 @@ function startSim(){
     const cpuB=45+Math.sin(t)*20, gpuB=60+Math.sin(t*1.3)*15;
     const cores=Array.from({length:16},(_,i)=>Math.round(Math.max(5,cpuB+(Math.random()-.5)*30)));
     updateMetrics({
+      fps:Math.round(60+Math.sin(t)*20),
       sys_cpu_pct:Math.round(cpuB+(Math.random()-.5)*10),
       gpu_pct:Math.round(gpuB+(Math.random()-.5)*10),
       sys_ram_pct:Math.round(58+Math.random()*8),
@@ -453,102 +435,17 @@ function startSim(){
       gpu_mem_used_gb:+(11+Math.random()*2).toFixed(1),
       gpu_mem_total_gb:16,
       gpu_temp:Math.round(68+Math.random()*10),
+      gpu_name:'Simulated GPU',
       proc_ram_mb:Math.round(13000+Math.random()*2000),
       proc_cpu_pct:Math.round(25+Math.random()*15),
       pid:8472,
       sys_cpu_per_core:cores,
+      frame_ms:16.6,
+      bottleneck:'balanced'
     });
   },2000);
 }
 function stopSim(){clearInterval(simTimer);simTimer=null;}
-
-// ── Session summary ────────────────────────────────────────────────────────
-function showSummary(){
-  if(hist.cpu.length<3)return;
-  sessionEndTime=new Date();
-  const dur=Math.floor((sessionEndTime-sessionStart)/1000);
-  const mm=String(Math.floor(dur/60)).padStart(2,'0'),ss=String(dur%60).padStart(2,'0');
-  const avgCpu=avg(hist.cpu).toFixed(1),avgGpu=avg(hist.gpu).toFixed(1),avgRam=avg(hist.ram).toFixed(1);
-  const pkCpu=Math.max(...hist.cpu),pkGpu=Math.max(...hist.gpu);
-  const total=hist.cpu.length;
-  const pct=n=>total>0?Math.round(n/total*100)+'%':'--';
-  const cpu90=hist.cpu.filter(v=>v>90).length;
-  const gpu90=hist.gpu.filter(v=>v>90).length;
-  const ram85=hist.ram.filter(v=>v>85).length;
-
-  document.getElementById('sr-date').textContent=
-    sessionEndTime.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+
-    ' · '+sessionEndTime.toLocaleTimeString('en-US',{hour12:false});
-  const sp=document.getElementById('sr-specs');
-  if(sessionSpecs){const s=sessionSpecs;sp.textContent=(s.cpu||'?')+' · '+(s.gpu||'?')+' · '+(s.ram_gb||'?')+'GB · '+(s.os||'');sp.style.display='';}
-  else sp.style.display='none';
-
-  document.getElementById('sr-avg-cpu').textContent=avgCpu+'%';
-  document.getElementById('sr-avg-gpu').textContent=avgGpu+'%';
-  document.getElementById('sr-avg-ram').textContent=avgRam+'%';
-  document.getElementById('sr-peak-cpu').textContent=pkCpu+'%';
-  document.getElementById('sr-peak-gpu').textContent=pkGpu+'%';
-  document.getElementById('sr-dur').textContent=mm+':'+ss;
-  document.getElementById('sr-cpu90').textContent=cpu90+' ('+pct(cpu90)+')';
-  document.getElementById('sr-gpu90').textContent=gpu90+' ('+pct(gpu90)+')';
-  document.getElementById('sr-ram85').textContent=ram85+' ('+pct(ram85)+')';
-  document.getElementById('sr-peak-temp').textContent=peakGpuTemp>0?peakGpuTemp+'°C':'--';
-  document.getElementById('sr-sc-ram').textContent=peakScRam>0?peakScRam+' MB':'--';
-  document.getElementById('sum-modal').style.display='flex';
-}
-
-function closeSummary(){document.getElementById('sum-modal').style.display='none';}
-
-function downloadReport(){
-  if(hist.cpu.length<2)return;
-  const dur=Math.floor(((sessionEndTime||new Date())-sessionStart)/1000);
-  const mm=String(Math.floor(dur/60)).padStart(2,'0'),ss=String(dur%60).padStart(2,'0');
-  const specs=sessionSpecs||{};
-  const date=(sessionEndTime||new Date()).toISOString().slice(0,19).replace('T',' ');
-  const avgCpu=avg(hist.cpu).toFixed(1),avgGpu=avg(hist.gpu).toFixed(1),avgRam=avg(hist.ram).toFixed(1);
-  const pkCpu=Math.max(...hist.cpu),pkGpu=Math.max(...hist.gpu);
-  const total=hist.cpu.length;
-  const pct=n=>total>0?Math.round(n/total*100)+'%':'--';
-  const cpu90=hist.cpu.filter(v=>v>90).length, gpu90=hist.gpu.filter(v=>v>90).length, ram85=hist.ram.filter(v=>v>85).length;
-  const csvRows=[['Time','CPU_%','GPU_%','RAM_%','SC_RAM_GB']];
-  for(let i=0;i<hist.cpu.length;i++) csvRows.push([hist.labels[i],hist.cpu[i],hist.gpu[i],hist.ram[i],hist.scRam[i]]);
-  const csvData=csvRows.map(r=>r.join(',')).join('\n');
-
-  const html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SC Session '+date+'</title>'+
-'<style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#05080d;color:#c8d8e8;font-family:Segoe UI,sans-serif;padding:40px;max-width:900px;margin:0 auto;}'+
-'h1{font-size:26px;letter-spacing:4px;color:#06b6d4;margin-bottom:4px;}.sub{font-size:12px;color:#4a6070;font-family:monospace;margin-bottom:28px;}'+
-'.specs{background:#0c1220;border:1px solid #1a2a3a;border-radius:6px;padding:12px 16px;font-size:12px;color:#4a6070;font-family:monospace;margin-bottom:22px;line-height:1.8;}'+
-'.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:26px;}'+
-'.stat{background:#080d14;border:1px solid #1a2a3a;border-radius:6px;padding:14px;}.sl{font-size:9px;letter-spacing:2px;color:#4a6070;margin-bottom:6px;}.sv{font-size:26px;font-weight:700;font-family:monospace;}'+
-'.sec{margin-bottom:22px;}.sec h2{font-size:11px;letter-spacing:3px;color:#4a6070;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid #1a2a3a;}'+
-'.row{display:flex;justify-content:space-between;font-family:monospace;font-size:13px;padding:5px 0;border-bottom:1px solid #080d14;}.rl{color:#4a6070;}.rv{font-weight:700;}'+
-'pre{background:#080d14;border:1px solid #1a2a3a;border-radius:4px;padding:12px;font-size:11px;font-family:monospace;color:#4a6070;overflow:auto;max-height:200px;}'+
-'.footer{margin-top:28px;font-size:11px;color:#2a3a4a;font-family:monospace;}</style></head><body>'+
-'<h1>SESSION REPORT</h1><div class="sub">'+date+' &nbsp;·&nbsp; Duration: '+mm+':'+ss+'</div>'+
-'<div class="specs">'+(specs.cpu||'Unknown CPU')+' &nbsp;·&nbsp; '+(specs.gpu||'Unknown GPU')+' &nbsp;·&nbsp; '+(specs.ram_gb||'?')+'GB RAM &nbsp;·&nbsp; '+(specs.os||'')+'</div>'+
-'<div class="grid">'+
-'<div class="stat"><div class="sl">AVG CPU</div><div class="sv" style="color:#f59e0b">'+avgCpu+'%</div></div>'+
-'<div class="stat"><div class="sl">AVG GPU</div><div class="sv" style="color:#38bdf8">'+avgGpu+'%</div></div>'+
-'<div class="stat"><div class="sl">AVG RAM</div><div class="sv" style="color:#a78bfa">'+avgRam+'%</div></div>'+
-'<div class="stat"><div class="sl">PEAK CPU</div><div class="sv" style="color:#ef4444">'+pkCpu+'%</div></div>'+
-'<div class="stat"><div class="sl">PEAK GPU</div><div class="sv" style="color:#ef4444">'+pkGpu+'%</div></div>'+
-'<div class="stat"><div class="sl">PEAK GPU TEMP</div><div class="sv" style="color:#06b6d4">'+(peakGpuTemp>0?peakGpuTemp+'C':'--')+'</div></div>'+
-'</div>'+
-'<div class="sec"><h2>PERFORMANCE BREAKDOWN</h2>'+
-'<div class="row"><span class="rl">CPU above 90%</span><span class="rv">'+cpu90+' samples ('+pct(cpu90)+')</span></div>'+
-'<div class="row"><span class="rl">GPU above 90%</span><span class="rv">'+gpu90+' samples ('+pct(gpu90)+')</span></div>'+
-'<div class="row"><span class="rl">RAM above 85%</span><span class="rv">'+ram85+' samples ('+pct(ram85)+')</span></div>'+
-'<div class="row"><span class="rl">SC peak RAM</span><span class="rv">'+(peakScRam>0?peakScRam+' MB':'--')+'</span></div>'+
-'</div>'+
-'<div class="sec"><h2>RAW DATA (CSV)</h2><pre>'+csvData+'</pre></div>'+
-'<div class="footer">Generated by SC Monitor &nbsp;·&nbsp; '+date+'</div>'+
-'</body></html>';
-
-  const fname='sc_session_'+(sessionEndTime||new Date()).toISOString().slice(0,19).replace(/[T:]/g,'-')+'.html';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
-  a.download=fname;a.click();
-}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 startSim();
