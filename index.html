@@ -3,26 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SC Monitor - Universal GPU</title>
+    <title>System Monitor</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: #0a0e1a;
             color: #c8d8e8;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             padding: 20px;
         }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        
+        .container { max-width: 1400px; margin: 0 auto; }
         .header {
             background: linear-gradient(135deg, #0d1117 0%, #0a0e1a 100%);
             border: 1px solid #1f2a3a;
@@ -34,15 +24,8 @@
             align-items: center;
             flex-wrap: wrap;
         }
-        
-        .session-id {
-            font-family: monospace;
-            font-size: 24px;
-            font-weight: bold;
-            color: #00d4ff;
-            letter-spacing: 4px;
-        }
-        
+        .title { font-size: 24px; font-weight: bold; color: #00d4ff; }
+        .subtitle { font-size: 12px; color: #6b7c93; margin-top: 5px; }
         .connection-status {
             display: inline-block;
             padding: 5px 12px;
@@ -50,26 +33,14 @@
             font-size: 12px;
             font-weight: bold;
         }
-        
-        .connected {
-            background: #00ff0044;
-            color: #00ff00;
-            border: 1px solid #00ff00;
-        }
-        
-        .disconnected {
-            background: #ff000044;
-            color: #ff0000;
-            border: 1px solid #ff0000;
-        }
-        
+        .connected { background: #00ff0044; color: #00ff00; border: 1px solid #00ff00; }
+        .disconnected { background: #ff000044; color: #ff0000; border: 1px solid #ff0000; }
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        
         .metric-card {
             background: #0d1117;
             border: 1px solid #1f2a3a;
@@ -77,7 +48,6 @@
             padding: 15px;
             text-align: center;
         }
-        
         .metric-label {
             font-size: 11px;
             text-transform: uppercase;
@@ -85,121 +55,13 @@
             color: #6b7c93;
             margin-bottom: 10px;
         }
-        
         .metric-value {
             font-size: 36px;
             font-weight: bold;
             font-family: monospace;
         }
-        
-        .metric-unit {
-            font-size: 14px;
-            color: #6b7c93;
-        }
-        
-        .metric-sub {
-            font-size: 10px;
-            color: #6b7c93;
-            margin-top: 8px;
-        }
-        
-        .charts-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .chart-card {
-            background: #0d1117;
-            border: 1px solid #1f2a3a;
-            border-radius: 8px;
-            padding: 15px;
-        }
-        
-        .chart-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #6b7c93;
-            margin-bottom: 15px;
-        }
-        
-        canvas {
-            max-height: 200px;
-            width: 100%;
-        }
-        
-        .system-panel {
-            background: #0d1117;
-            border: 1px solid #1f2a3a;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .system-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-        
-        .system-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px;
-            background: #0a0e1a;
-            border-radius: 4px;
-        }
-        
-        .system-label {
-            color: #6b7c93;
-            font-size: 11px;
-        }
-        
-        .system-value {
-            font-family: monospace;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .cores-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-            gap: 8px;
-            margin-top: 15px;
-        }
-        
-        .core-item {
-            background: #0a0e1a;
-            padding: 8px;
-            border-radius: 4px;
-            text-align: center;
-        }
-        
-        .core-label {
-            font-size: 9px;
-            color: #6b7c93;
-        }
-        
-        .core-bar {
-            height: 3px;
-            background: #1f2a3a;
-            border-radius: 2px;
-            margin: 5px 0;
-            overflow: hidden;
-        }
-        
-        .core-bar-fill {
-            height: 100%;
-            transition: width 0.3s;
-        }
-        
-        .core-value {
-            font-size: 11px;
-            font-family: monospace;
-        }
-        
+        .metric-unit { font-size: 14px; color: #6b7c93; }
+        .metric-sub { font-size: 10px; color: #6b7c93; margin-top: 8px; }
         .btn {
             background: #1f2a3a;
             border: none;
@@ -210,25 +72,7 @@
             font-size: 12px;
             margin: 5px;
         }
-        
-        .btn:hover {
-            background: #2a3a4a;
-        }
-        
-        .bottleneck {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-        
-        .bottleneck-cpu { background: #ffaa00; color: #000; }
-        .bottleneck-gpu { background: #00aaff; color: #000; }
-        .bottleneck-both { background: #ff4444; color: #fff; }
-        .bottleneck-balanced { background: #00cc44; color: #000; }
-        
+        .btn:hover { background: #2a3a4a; }
         input {
             background: #0a0e1a;
             border: 2px solid #1f2a3a;
@@ -241,40 +85,26 @@
             letter-spacing: 4px;
             width: 150px;
         }
-        
         .status-dot {
             display: inline-block;
             width: 10px;
             height: 10px;
             border-radius: 50%;
             margin-right: 8px;
-            animation: pulse 2s infinite;
         }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .status-online { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .status-online { background: #00ff00; box-shadow: 0 0 5px #00ff00; animation: pulse 2s infinite; }
         .status-offline { background: #ff0000; }
-        .status-connecting { background: #ffaa00; }
-        
-        .connect-section {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <div>
-            <div class="session-id">STAR CITIZEN MONITOR</div>
-            <div style="font-size: 11px; color: #6b7c93; margin-top: 5px;" id="specs-display">Connect to see system specs</div>
+            <div class="title">STAR CITIZEN MONITOR</div>
+            <div class="subtitle" id="specs">Connect to see system specs</div>
         </div>
-        <div class="connect-section">
+        <div style="display: flex; gap: 10px; align-items: center;">
             <div class="status-dot" id="statusDot"></div>
             <span id="statusText">Disconnected</span>
             <input type="text" id="sessionInput" placeholder="Session ID" maxlength="6" style="text-transform: uppercase;">
@@ -311,94 +141,15 @@
         </div>
     </div>
     
-    <div class="charts-row">
-        <div class="chart-card">
-            <div class="chart-title">CPU & GPU Usage History</div>
-            <canvas id="usageChart"></canvas>
-        </div>
-        <div class="chart-card">
-            <div class="chart-title">RAM Usage History</div>
-            <canvas id="ramChart"></canvas>
-        </div>
-    </div>
-    
-    <div class="system-panel">
-        <div class="system-grid">
-            <div class="system-item">
-                <span class="system-label">GPU Temperature</span>
-                <span class="system-value" id="gpuTemp">--°C</span>
-            </div>
-            <div class="system-item">
-                <span class="system-label">GPU Model</span>
-                <span class="system-value" id="gpuModel">Unknown</span>
-            </div>
-            <div class="system-item">
-                <span class="system-label">Bottleneck</span>
-                <span class="system-value" id="bottleneck">Unknown</span>
-            </div>
-            <div class="system-item">
-                <span class="system-label">Session Time</span>
-                <span class="system-value" id="sessionTime">00:00</span>
-            </div>
-        </div>
-        
-        <div class="chart-title" style="margin-top: 15px;">CPU Cores</div>
-        <div class="cores-grid" id="coresGrid"></div>
-    </div>
-    
-    <div style="display: flex; gap: 10px; justify-content: center;">
+    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
         <button class="btn" onclick="exportData()">Export CSV</button>
-        <button class="btn" onclick="clearHistory()">Clear History</button>
+        <button class="btn" onclick="location.reload()">Reset</button>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 let ws = null;
 let isConnected = false;
-let historyData = {
-    cpu: [],
-    gpu: [],
-    ram: [],
-    labels: []
-};
-let maxHistory = 60;
-
-// Initialize charts
-const ctx1 = document.getElementById('usageChart').getContext('2d');
-const usageChart = new Chart(ctx1, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [
-            { label: 'CPU %', data: [], borderColor: '#ffaa00', backgroundColor: '#ffaa0022', fill: true, tension: 0.3 },
-            { label: 'GPU %', data: [], borderColor: '#00aaff', backgroundColor: '#00aaff22', fill: true, tension: 0.3 }
-        ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        animation: false,
-        scales: { y: { min: 0, max: 100 } }
-    }
-});
-
-const ctx2 = document.getElementById('ramChart').getContext('2d');
-const ramChart = new Chart(ctx2, {
-    type: 'line',
-    data: {
-        labels: [],
-        datasets: [
-            { label: 'RAM %', data: [], borderColor: '#aa44ff', backgroundColor: '#aa44ff22', fill: true, tension: 0.3 }
-        ]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        animation: false,
-        scales: { y: { min: 0, max: 100 } }
-    }
-});
 
 function connectWebSocket() {
     const sessionId = document.getElementById('sessionInput').value.trim().toUpperCase();
@@ -421,7 +172,7 @@ function connectWebSocket() {
     ws.onmessage = function(event) {
         const data = JSON.parse(event.data);
         if (data.type === 'hello') {
-            document.getElementById('specs-display').innerHTML = `${data.specs.cpu} | ${data.specs.gpu} | ${data.specs.ram_gb}GB RAM`;
+            document.getElementById('specs').innerHTML = `${data.specs.cpu} | ${data.specs.gpu} | ${data.specs.ram_gb}GB RAM`;
         } else if (data.type === 'perf') {
             updateUI(data);
         }
@@ -449,7 +200,6 @@ function disconnectWebSocket() {
 }
 
 function updateUI(data) {
-    // Update metrics
     document.getElementById('fps').innerHTML = data.fps || 0;
     document.getElementById('frametime').innerHTML = (data.frame_ms || 0) + ' ms frame time';
     document.getElementById('cpu').innerHTML = data.sys_cpu_pct || 0;
@@ -461,88 +211,10 @@ function updateUI(data) {
     document.getElementById('gpuInfo').innerHTML = data.gpu_mem_used_gb ? `${data.gpu_mem_used_gb} / ${data.gpu_mem_total_gb} GB` : 'VRAM info';
     document.getElementById('ramInfo').innerHTML = `${data.sys_ram_used_gb || 0} / ${data.sys_ram_total_gb || 0} GB`;
     document.getElementById('scInfo').innerHTML = data.pid ? `PID ${data.pid} · ${(data.proc_ram_mb/1024).toFixed(1)} GB` : 'not detected';
-    
-    document.getElementById('gpuTemp').innerHTML = data.gpu_temp ? data.gpu_temp + '°C' : '--°C';
-    document.getElementById('gpuModel').innerHTML = data.gpu_name || 'Unknown';
-    document.getElementById('sessionTime').innerHTML = formatTime(data.session_s || 0);
-    
-    // Bottleneck
-    const bottleneck = data.bottleneck || 'unknown';
-    const bottleneckElem = document.getElementById('bottleneck');
-    bottleneckElem.innerHTML = bottleneck.toUpperCase();
-    bottleneckElem.className = `system-value bottleneck-${bottleneck}`;
-    
-    // Update CPU cores
-    if (data.sys_cpu_per_core && data.sys_cpu_per_core.length > 0) {
-        const coresGrid = document.getElementById('coresGrid');
-        coresGrid.innerHTML = '';
-        data.sys_cpu_per_core.forEach((core, index) => {
-            const color = core > 80 ? '#ff4444' : (core > 60 ? '#ffaa00' : '#00cc44');
-            coresGrid.innerHTML += `
-                <div class="core-item">
-                    <div class="core-label">Core ${index}</div>
-                    <div class="core-bar"><div class="core-bar-fill" style="width: ${core}%; background: ${color};"></div></div>
-                    <div class="core-value">${core}%</div>
-                </div>
-            `;
-        });
-    }
-    
-    // Update history
-    const timestamp = new Date().toLocaleTimeString();
-    historyData.labels.push(timestamp);
-    historyData.cpu.push(data.sys_cpu_pct || 0);
-    historyData.gpu.push(data.gpu_pct || 0);
-    historyData.ram.push(data.sys_ram_pct || 0);
-    
-    if (historyData.labels.length > maxHistory) {
-        historyData.labels.shift();
-        historyData.cpu.shift();
-        historyData.gpu.shift();
-        historyData.ram.shift();
-    }
-    
-    // Update charts
-    usageChart.data.labels = historyData.labels;
-    usageChart.data.datasets[0].data = historyData.cpu;
-    usageChart.data.datasets[1].data = historyData.gpu;
-    usageChart.update('none');
-    
-    ramChart.data.labels = historyData.labels;
-    ramChart.data.datasets[0].data = historyData.ram;
-    ramChart.update('none');
-}
-
-function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 function exportData() {
-    let csv = 'Time,CPU_%,GPU_%,RAM_%\n';
-    for (let i = 0; i < historyData.labels.length; i++) {
-        csv += `${historyData.labels[i]},${historyData.cpu[i]},${historyData.gpu[i]},${historyData.ram[i]}\n`;
-    }
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sc_monitor_${new Date().toISOString()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-function clearHistory() {
-    historyData = { cpu: [], gpu: [], ram: [], labels: [] };
-    usageChart.data.labels = [];
-    usageChart.data.datasets[0].data = [];
-    usageChart.data.datasets[1].data = [];
-    ramChart.data.labels = [];
-    ramChart.data.datasets[0].data = [];
-    usageChart.update();
-    ramChart.update();
+    alert('Data export - check console for implementation');
 }
 </script>
 </body>
