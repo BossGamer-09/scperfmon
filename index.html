@@ -221,8 +221,18 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:12px 
   <div class="conn-area">
     <div class="dot" id="dot"></div>
     <span id="conn-label">DISCONNECTED</span>
-    <button class="btn" id="btn-connect" onclick="openModal()">CONNECT</button>
-    <button class="btn danger" id="btn-disconnect" onclick="doDisconnect()" style="display:none">DISCONNECT</button>
+    <div id="id-input-area" style="display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:var(--muted);letter-spacing:2px;font-family:var(--mono);">SESSION ID</span>
+      <input id="inline-id" maxlength="6" placeholder="ABC123"
+        style="background:var(--bg2);border:1px solid var(--cyan);color:var(--text);font-family:var(--mono);font-size:16px;font-weight:700;letter-spacing:5px;padding:5px 12px;border-radius:3px;width:120px;outline:none;text-transform:uppercase;text-align:center;"
+        oninput="this.value=this.value.toUpperCase()"
+        onkeydown="if(event.key==='Enter')doConnectInline()">
+      <button class="btn active" onclick="doConnectInline()">GO</button>
+    </div>
+    <div id="connected-area" style="display:none;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:var(--green);font-family:var(--mono);letter-spacing:1px;" id="connected-id-label"></span>
+      <button class="btn danger" onclick="doDisconnect()">DISCONNECT</button>
+    </div>
   </div>
 </header>
 
@@ -435,6 +445,80 @@ function openModal(){
   document.getElementById('modal-id').focus();
 }
 function closeModal(){document.getElementById('modal').style.display='none';}
+
+
+function doConnectInline() {
+  const raw = document.getElementById('inline-id').value.trim().toUpperCase();
+  if (!raw) { document.getElementById('inline-id').style.borderColor='var(--red)'; return; }
+  document.getElementById('inline-id').style.borderColor='var(--border2)';
+  const url = (raw.startsWith('WS://') || raw.startsWith('ws://')) ? raw : 'ws://localhost:8765';
+  _connectWS(url, raw);
+}
+
+function _connectWS(url, displayId) {
+  stopSim();
+  document.getElementById('dot').className='dot warn';
+  document.getElementById('conn-label').textContent='CONNECTING...';
+  try {
+    ws = new WebSocket(url);
+    ws.onopen = ()=>{
+      isConnected=true;
+      document.getElementById('dot').className='dot live';
+      document.getElementById('conn-label').textContent='LIVE';
+      document.getElementById('id-input-area').style.display='none';
+      document.getElementById('connected-area').style.display='flex';
+      document.getElementById('connected-id-label').textContent='ID: '+displayId;
+      document.getElementById('sim-badge').style.display='none';
+      clearCharts(); resetDisplays();
+      addLog(ts(),'Companion connected','good');
+      sessionStart=Date.now(); resetSessionTracking();
+    };
+    ws.onclose = ()=>{
+      isConnected=false;
+      document.getElementById('dot').className='dot';
+      document.getElementById('conn-label').textContent='DISCONNECTED';
+      document.getElementById('id-input-area').style.display='flex';
+      document.getElementById('connected-area').style.display='none';
+      document.getElementById('sim-badge').style.display='';
+      document.getElementById('specs-line').textContent='CONNECT COMPANION TO DETECT SPECS';
+      showSummary();
+      clearCharts(); resetDisplays(); startSim();
+      addLog(ts(),'Companion disconnected','warn');
+    };
+    ws.onerror = ()=>{
+      isConnected=false;
+      document.getElementById('dot').className='dot err';
+      document.getElementById('conn-label').textContent='FAILED';
+      document.getElementById('id-input-area').style.display='flex';
+      document.getElementById('connected-area').style.display='none';
+      document.getElementById('sim-badge').style.display='';
+      startSim();
+      addLog(ts(),'Connection failed — is sc_companion.py running on port 8765?','error');
+    };
+    ws.onmessage = e=>{
+      try{
+        const d=JSON.parse(e.data);
+        if(d.type==='perf') updateMetrics(d);
+        else if(d.type==='log') { addLog(d.time||ts(),d.msg,d.kind||'info'); if(isConnected) trackEvent(d.time||ts(),d.msg,d.kind||'info'); }
+        else if(d.type==='hello'){
+          addLog(ts(),'Companion v'+d.version+' | log: '+(d.log||'not found'),'good');
+          if(d.specs){
+            const s=d.specs;
+            const parts=[s.cpu,s.gpu,s.ram_gb?s.ram_gb+'GB':''].filter(Boolean);
+            document.getElementById('specs-line').textContent=parts.join(' · ').toUpperCase();
+            sessionSpecs=d.specs;
+          }
+        }
+      }catch{}
+    };
+  } catch(err){
+    addLog(ts(),'WebSocket error: '+err.message,'error');
+    document.getElementById('id-input-area').style.display='flex';
+    document.getElementById('dot').className='dot err';
+    document.getElementById('conn-label').textContent='ERROR';
+    startSim();
+  }
+}
 
 function doConnect(){
   const raw = document.getElementById('modal-id').value.trim().toUpperCase();
@@ -721,8 +805,7 @@ pre{background:#080d14;border:1px solid #1a2a3a;border-radius:4px;padding:12px;f
 addLog(ts(),'Dashboard ready — click CONNECT and enter your Session ID','good');
 addLog(ts(),'Run sc_companion.py on your gaming PC first','info');
 startSim();
-// Show modal on first load
-setTimeout(()=>openModal(), 800);
+// inline ID input is always visible
 </script>
 </body>
 </html>
