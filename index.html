@@ -273,7 +273,7 @@ header{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
 let ws = null;
@@ -343,13 +343,20 @@ function updateMetrics(d) {
   const fps = d.fps||0, cpu = d.cpu_ms||0, gpu = d.gpu_ms||0;
   const ft = fps > 0 ? +(1000/fps).toFixed(1) : 0;
 
-  document.getElementById('v-fps').textContent = fps;
-  document.getElementById('v-fps').style.color = fpsCol(fps);
-  document.getElementById('v-ft').textContent = ft;
-  document.getElementById('v-cpu').textContent = cpu;
-  document.getElementById('v-cpu').style.color = msCol(cpu);
-  document.getElementById('v-gpu').textContent = gpu;
-  document.getElementById('v-gpu').style.color = msCol(gpu);
+  // Only update FPS display if we have real data
+  if (fps > 0) {
+    document.getElementById('v-fps').textContent = fps;
+    document.getElementById('v-fps').style.color = fpsCol(fps);
+    document.getElementById('v-ft').textContent = ft;
+  }
+  if (cpu > 0) {
+    document.getElementById('v-cpu').textContent = cpu;
+    document.getElementById('v-cpu').style.color = msCol(cpu);
+  }
+  if (gpu > 0) {
+    document.getElementById('v-gpu').textContent = gpu;
+    document.getElementById('v-gpu').style.color = msCol(gpu);
+  }
 
   if (hist.fps.length > 1) {
     const a = Math.round(avg(hist.fps));
@@ -379,10 +386,10 @@ function updateMetrics(d) {
 
 function showAlert(fps, cpu, gpu) {
   const el = document.getElementById('alert-box');
-  if (fps < 20)      { el.className='alert err';  el.textContent='CRITICAL: FPS below 20 — severe CPU stall'; el.style.display='flex'; }
-  else if (cpu > 35) { el.className='alert warn'; el.textContent='CPU SPIKE: '+cpu+'ms main thread — entity processing overload'; el.style.display='flex'; }
-  else if (gpu > 35) { el.className='alert warn'; el.textContent='GPU HIGH: '+gpu+'ms — consider lowering resolution or upscaling'; el.style.display='flex'; }
-  else               { el.style.display='none'; }
+  if (fps > 0 && fps < 20) { el.className='alert err';  el.textContent='CRITICAL: FPS below 20 — severe CPU stall'; el.style.display='flex'; }
+  else if (cpu > 35)        { el.className='alert warn'; el.textContent='CPU SPIKE: '+cpu+'ms main thread — entity processing overload'; el.style.display='flex'; }
+  else if (gpu > 35)        { el.className='alert warn'; el.textContent='GPU HIGH: '+gpu+'ms — consider lowering resolution or upscaling'; el.style.display='flex'; }
+  else                      { el.style.display='none'; }
 }
 
 function resetDisplays() {
