@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SC Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg0: #05080d;
+  --bg1: #080d14;
+  --bg2: #0c1220;
+  --bg3: #101828;
+  --border: #1a2a3a;
+  --border2: #1e3348;
+  --text: #c8d8e8;
+  --muted: #4a6070;
+  --dim: #2a3a4a;
+  --green: #22c55e;
+  --yellow: #f59e0b;
+  --red: #ef4444;
+  --blue: #38bdf8;
+  --purple: #a78bfa;
+  --cyan: #06b6d4;
+  --mono: 'Share Tech Mono', monospace;
+  --head: 'Rajdhani', sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg0); color:var(--text); font-family:var(--head); min-height:100vh; overflow-x:hidden; }
+
+.scanline {
+  position:fixed; top:0; left:0; right:0; bottom:0; pointer-events:none; z-index:1000;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+}
+
+header {
+  background:var(--bg1); border-bottom:1px solid var(--border);
+  padding:12px 24px; display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:100;
+}
+.logo { display:flex; align-items:center; gap:12px; }
+.logo-mark {
+  width:36px; height:36px; border:1px solid var(--cyan); border-radius:4px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:11px; color:var(--cyan); letter-spacing:1px;
+}
+.logo-text { font-size:18px; font-weight:700; letter-spacing:3px; color:var(--text); }
+.logo-sub { font-size:11px; color:var(--muted); letter-spacing:2px; font-family:var(--mono); margin-top:1px; }
+
+.conn-row { display:flex; align-items:center; gap:12px; }
+.conn-status { display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--dim); transition:background 0.3s; }
+.dot.live { background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 2s infinite; }
+.dot.warn { background:var(--yellow); }
+.dot.err  { background:var(--red); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+#conn-label { color:var(--muted); }
+
+.ws-form { display:flex; gap:6px; align-items:center; }
+.ws-form input {
+  background:var(--bg2); border:1px solid var(--border); color:var(--text);
+  font-family:var(--mono); font-size:11px; padding:5px 10px; border-radius:3px;
+  width:200px; outline:none;
+}
+.ws-form input:focus { border-color:var(--cyan); }
+.btn {
+  background:transparent; border:1px solid var(--border2); color:var(--muted);
+  font-family:var(--head); font-size:12px; font-weight:600; letter-spacing:1px;
+  padding:5px 14px; border-radius:3px; cursor:pointer; transition:all 0.15s;
+}
+.btn:hover { border-color:var(--cyan); color:var(--cyan); }
+.btn.active { border-color:var(--green); color:var(--green); }
+.btn.danger { border-color:var(--red); color:var(--red); }
+
+.alert {
+  margin:0 24px; padding:8px 16px; border-radius:3px;
+  font-family:var(--mono); font-size:12px; display:none;
+  align-items:center; gap:10px; margin-top:10px;
+}
+.alert.warn { background:#1a1200; border:1px solid #f59e0b44; color:var(--yellow); display:flex; }
+.alert.err  { background:#1a0505; border:1px solid #ef444444; color:var(--red);    display:flex; }
+
+.metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); margin:16px 24px 0; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.metric { background:var(--bg1); padding:16px 20px; position:relative; overflow:hidden; }
+.metric::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:var(--accent,var(--dim)); }
+.metric.m-fps  { --accent:var(--green); }
+.metric.m-ft   { --accent:var(--text); }
+.metric.m-cpu  { --accent:var(--yellow); }
+.metric.m-gpu  { --accent:var(--blue); }
+.m-label { font-size:11px; letter-spacing:3px; color:var(--muted); margin-bottom:8px; }
+.m-val { font-size:38px; font-weight:700; line-height:1; font-family:var(--mono); }
+.m-unit { font-size:14px; color:var(--muted); margin-left:2px; }
+.m-sub { font-size:11px; color:var(--muted); margin-top:6px; font-family:var(--mono); }
+.bb-badge {
+  display:inline-block; font-size:10px; padding:2px 7px; border-radius:2px;
+  font-weight:600; letter-spacing:1px; font-family:var(--head);
+}
+.bb-cpu  { background:#1a1000; color:var(--yellow); border:1px solid #f59e0b33; }
+.bb-gpu  { background:#001020; color:var(--blue);   border:1px solid #38bdf833; }
+.bb-balanced { background:#001a08; color:var(--green); border:1px solid #22c55e33; }
+
+.charts { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px 24px 0; }
+.chart-wrap { background:var(--bg1); border:1px solid var(--border); border-radius:4px; padding:14px 16px; }
+.chart-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.chart-title { font-size:11px; letter-spacing:3px; color:var(--muted); }
+.chart-legend { display:flex; gap:12px; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); font-family:var(--mono); }
+.legend-dot { width:8px; height:3px; border-radius:1px; }
+
+.bottom { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px 24px 20px; }
+.panel { background:var(--bg1); border:1px solid var(--border); border-radius:4px; padding:14px 16px; }
+.panel-title { font-size:11px; letter-spacing:3px; color:var(--muted); margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+
+.proc-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px; }
+.proc-stat { background:var(--bg2); border-radius:3px; padding:8px 10px; }
+.proc-stat-label { font-size:10px; color:var(--muted); letter-spacing:2px; margin-bottom:4px; }
+.proc-stat-val { font-size:18px; font-weight:700; font-family:var(--mono); }
+
+.thread-row { display:grid; grid-template-columns:80px 1fr 40px; gap:8px; align-items:center; margin-bottom:6px; }
+.thread-name { font-size:11px; color:var(--muted); font-family:var(--mono); }
+.thread-bar-bg { background:var(--bg0); border-radius:2px; height:4px; overflow:hidden; }
+.thread-bar { height:100%; border-radius:2px; transition:width 0.4s; }
+.thread-pct { font-size:11px; font-family:var(--mono); color:var(--muted); text-align:right; }
+
+.log-list { height:180px; overflow-y:auto; font-family:var(--mono); font-size:11px; line-height:1.7; }
+.log-list::-webkit-scrollbar { width:3px; }
+.log-list::-webkit-scrollbar-thumb { background:var(--border2); }
+.log-item { padding:1px 0; border-bottom:1px solid var(--bg2); display:flex; gap:8px; }
+.log-item.good   .log-msg { color:var(--green); }
+.log-item.warn   .log-msg { color:var(--yellow); }
+.log-item.error  .log-msg { color:var(--red); }
+.log-item.info   .log-msg { color:var(--muted); }
+.log-item.perf   .log-msg { color:var(--cyan); }
+.log-time { color:var(--dim); min-width:56px; }
+.log-msg { word-break:break-all; }
+.log-filter-row { margin-top:8px; display:flex; gap:6px; }
+.log-filter-row input {
+  flex:1; background:var(--bg0); border:1px solid var(--border);
+  color:var(--text); font-family:var(--mono); font-size:11px;
+  padding:4px 8px; border-radius:3px; outline:none;
+}
+
+.sim-badge {
+  background:#0a0010; border:1px solid #a78bfa44; color:var(--purple);
+  font-size:10px; padding:2px 8px; border-radius:2px; letter-spacing:2px;
+  font-family:var(--head); font-weight:600;
+}
+
+.controls-row { padding:10px 24px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.controls-row select {
+  background:var(--bg2); border:1px solid var(--border); color:var(--muted);
+  font-family:var(--mono); font-size:11px; padding:5px 8px; border-radius:3px;
+}
+.ctrl-label { font-size:11px; color:var(--dim); letter-spacing:1px; margin-left:6px; }
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">SC</div>
+    <div>
+      <div class="logo-text">STAR CITIZEN MONITOR</div>
+      <div class="logo-sub" id="specs-line">CONNECT COMPANION TO DETECT SPECS</div>
+    </div>
+  </div>
+  <div class="conn-row">
+    <div class="conn-status">
+      <div class="dot" id="dot"></div>
+      <span id="conn-label">DISCONNECTED</span>
+    </div>
+    <div class="ws-form">
+      <input type="text" id="ws-url" value="ws://localhost:8765" placeholder="ws://localhost:8765">
+      <button class="btn" id="btn-connect" onclick="toggleConnect()">CONNECT</button>
+    </div>
+  </div>
+</header>
+
+<div id="alert-box" class="alert"></div>
+
+<div class="controls-row">
+  <button class="btn active" id="btn-live" onclick="setPaused(false)">LIVE</button>
+  <button class="btn" id="btn-pause" onclick="setPaused(true)">PAUSE</button>
+  <span class="ctrl-label">HISTORY</span>
+  <select id="sel-history" onchange="histMax=+this.value">
+    <option value="60">60s</option>
+    <option value="120" selected>2m</option>
+    <option value="300">5m</option>
+  </select>
+  <button class="btn" style="margin-left:auto" onclick="clearCharts()">CLEAR</button>
+  <button class="btn" onclick="exportCSV()">EXPORT CSV</button>
+  <span class="sim-badge" id="sim-badge">SIMULATION</span>
+</div>
+
+<div class="metrics">
+  <div class="metric m-fps">
+    <div class="m-label">FRAME RATE</div>
+    <div><span class="m-val" id="v-fps" style="color:var(--green)">--</span><span class="m-unit">fps</span></div>
+    <div class="m-sub" id="v-fps-sub">avg -- · min -- · max --</div>
+  </div>
+  <div class="metric m-ft">
+    <div class="m-label">FRAME TIME</div>
+    <div><span class="m-val" id="v-ft">--</span><span class="m-unit">ms</span></div>
+    <div class="m-sub" id="v-bb">bottleneck: --</div>
+  </div>
+  <div class="metric m-cpu">
+    <div class="m-label">CPU FRAME</div>
+    <div><span class="m-val" id="v-cpu" style="color:var(--yellow)">--</span><span class="m-unit">ms</span></div>
+    <div class="m-sub" id="v-cpu-sub">main thread</div>
+  </div>
+  <div class="metric m-gpu">
+    <div class="m-label">GPU FRAME</div>
+    <div><span class="m-val" id="v-gpu" style="color:var(--blue)">--</span><span class="m-unit">ms</span></div>
+    <div class="m-sub" id="v-gpu-sub">render thread</div>
+  </div>
+</div>
+
+<div class="charts">
+  <div class="chart-wrap">
+    <div class="chart-hdr">
+      <span class="chart-title">FPS HISTORY</span>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>fps</span>
+      </div>
+    </div>
+    <div style="position:relative;height:150px"><canvas id="c-fps" role="img" aria-label="FPS over time">FPS history</canvas></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-hdr">
+      <span class="chart-title">FRAME TIMES</span>
+      <div class="chart-legend">
+        <span class="legend-item"><span class="legend-dot" style="background:var(--yellow)"></span>cpu</span>
+        <span class="legend-item"><span class="legend-dot" style="background:var(--blue)"></span>gpu</span>
+      </div>
+    </div>
+    <div style="position:relative;height:150px"><canvas id="c-times" role="img" aria-label="CPU and GPU frame times over time">Frame times</canvas></div>
+  </div>
+</div>
+
+<div class="bottom">
+  <div class="panel">
+    <div class="panel-title">
+      <span>PROCESS STATS</span>
+      <span id="v-pid" style="font-family:var(--mono);font-size:11px;color:var(--dim)">PID --</span>
+    </div>
+    <div class="proc-grid">
+      <div class="proc-stat">
+        <div class="proc-stat-label">VRAM</div>
+        <div class="proc-stat-val" id="v-vram" style="color:var(--blue)">-- GB</div>
+      </div>
+      <div class="proc-stat">
+        <div class="proc-stat-label">PROC RAM</div>
+        <div class="proc-stat-val" id="v-pram" style="color:var(--purple)">-- MB</div>
+      </div>
+      <div class="proc-stat">
+        <div class="proc-stat-label">SESSION</div>
+        <div class="proc-stat-val" id="v-sess" style="color:var(--muted)">--:--</div>
+      </div>
+    </div>
+    <div class="thread-row">
+      <span class="thread-name">PROC CPU</span>
+      <div class="thread-bar-bg"><div class="thread-bar" id="bar-cpu" style="background:var(--yellow);width:0%"></div></div>
+      <span class="thread-pct" id="pct-cpu">--%</span>
+    </div>
+    <div class="thread-row">
+      <span class="thread-name">SYS RAM</span>
+      <div class="thread-bar-bg"><div class="thread-bar" id="bar-ram" style="background:var(--purple);width:0%"></div></div>
+      <span class="thread-pct" id="pct-ram">--%</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <span>GAME LOG</span>
+      <span id="v-logcount" style="font-family:var(--mono);font-size:11px;color:var(--dim)">0 entries</span>
+    </div>
+    <div class="log-list" id="log-list">
+      <div class="log-item info"><span class="log-time">--:--:--</span><span class="log-msg">Waiting for companion connection...</span></div>
+    </div>
+    <div class="log-filter-row">
+      <input type="text" id="log-filter" placeholder="filter log..." oninput="filterLog()">
+      <button class="btn" onclick="clearLog()">CLEAR</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let ws = null;
+let paused = false;
+let histMax = 120;
+let simTimer = null;
+let isConnected = false;
+let sessionStart = Date.now();
+let logCount = 0;
+const hist = { fps:[], cpu:[], gpu:[], ft:[], labels:[] };
+const allLogs = [];
+
+const chartOpts = (color, max) => ({
+  responsive:true, maintainAspectRatio:false, animation:false,
+  plugins:{ legend:{ display:false } },
+  scales:{
+    x:{ display:false },
+    y:{ min:0, max, grid:{ color:'#1a2a3a' }, ticks:{ color:'#4a6070', font:{ size:10 }, font:{family:"'Share Tech Mono',monospace"} } }
+  }
+});
+
+const cFps = new Chart(document.getElementById('c-fps'), {
+  type:'line',
+  data:{ labels:[], datasets:[{ data:[], borderColor:'#22c55e', backgroundColor:'#22c55e0d', borderWidth:1.5, pointRadius:0, fill:true, tension:0.3 }] },
+  options: chartOpts('#22c55e', 100)
+});
+const cTimes = new Chart(document.getElementById('c-times'), {
+  type:'line',
+  data:{ labels:[], datasets:[
+    { data:[], borderColor:'#f59e0b', backgroundColor:'transparent', borderWidth:1.5, pointRadius:0, tension:0.3 },
+    { data:[], borderColor:'#38bdf8', backgroundColor:'transparent', borderWidth:1.5, pointRadius:0, tension:0.3, borderDash:[4,3] }
+  ]},
+  options: chartOpts('#f59e0b', 50)
+});
+
+function addPoint(fps, cpu, gpu) {
+  const label = new Date().toLocaleTimeString('en-US',{hour12:false});
+  hist.fps.push(fps); hist.cpu.push(cpu); hist.gpu.push(gpu);
+  hist.ft.push(+(1000/fps).toFixed(1)); hist.labels.push(label);
+  if (hist.fps.length > histMax) { hist.fps.shift(); hist.cpu.shift(); hist.gpu.shift(); hist.ft.shift(); hist.labels.shift(); }
+  cFps.data.labels = hist.labels;
+  cFps.data.datasets[0].data = hist.fps;
+  cFps.data.datasets[0].borderColor = fpsCol(fps);
+  cFps.data.datasets[0].backgroundColor = fpsCol(fps)+'0d';
+  cFps.update('none');
+  cTimes.data.labels = hist.labels;
+  cTimes.data.datasets[0].data = hist.cpu;
+  cTimes.data.datasets[1].data = hist.gpu;
+  cTimes.update('none');
+}
+
+function fpsCol(v) { return v>=60?'#22c55e':v>=30?'#f59e0b':'#ef4444'; }
+function msCol(v)  { return v<20?'#22c55e':v<33?'#f59e0b':'#ef4444'; }
+
+function updateMetrics(d) {
+  if (paused) return;
+  const fps = d.fps||0, cpu = d.cpu_ms||0, gpu = d.gpu_ms||0;
+  const ft = fps > 0 ? +(1000/fps).toFixed(1) : 0;
+  document.getElementById('v-fps').textContent = fps;
+  document.getElementById('v-fps').style.color = fpsCol(fps);
+  document.getElementById('v-ft').textContent = ft;
+  document.getElementById('v-cpu').textContent = cpu;
+  document.getElementById('v-cpu').style.color = msCol(cpu);
+  document.getElementById('v-gpu').textContent = gpu;
+  document.getElementById('v-gpu').style.color = msCol(gpu);
+  if (hist.fps.length > 1) {
+    const avg = Math.round(hist.fps.reduce((a,b)=>a+b,0)/hist.fps.length);
+    document.getElementById('v-fps-sub').textContent = `avg ${avg} · min ${Math.min(...hist.fps)} · max ${Math.max(...hist.fps)}`;
+  }
+  const bb = d.bottleneck||'unknown';
+  const bbMap = { cpu:'bb-cpu CPU BOTTLENECK', gpu:'bb-gpu GPU BOTTLENECK', balanced:'bb-balanced BALANCED', unknown:'bb-balanced --' };
+  const [cls, lbl] = (bbMap[bb]||'bb-balanced --').split(' ');
+  document.getElementById('v-bb').innerHTML = `bottleneck: <span class="bb-badge ${cls}">${lbl||bb.toUpperCase()}</span>`;
+  if (d.pid) document.getElementById('v-pid').textContent = `PID ${d.pid}`;
+  if (d.cpu_pct !== undefined) {
+    document.getElementById('pct-cpu').textContent = d.cpu_pct+'%';
+    document.getElementById('bar-cpu').style.width = Math.min(100,d.cpu_pct)+'%';
+  }
+  if (d.sys_ram_pct !== undefined) {
+    document.getElementById('pct-ram').textContent = d.sys_ram_pct+'%';
+    document.getElementById('bar-ram').style.width = Math.min(100,d.sys_ram_pct)+'%';
+  }
+  if (d.ram_mb) document.getElementById('v-pram').textContent = d.ram_mb+' MB';
+  const sess = Math.floor((Date.now()-sessionStart)/1000);
+  document.getElementById('v-sess').textContent = String(Math.floor(sess/60)).padStart(2,'0')+':'+String(sess%60).padStart(2,'0');
+  showAlert(fps, cpu, gpu);
+  addPoint(fps, cpu, gpu);
+}
+
+function showAlert(fps, cpu, gpu) {
+  const el = document.getElementById('alert-box');
+  if (fps < 20) { el.className='alert err'; el.textContent='CRITICAL: FPS below 20 — severe CPU stall or major asset streaming event'; el.style.display='flex'; }
+  else if (cpu > 35) { el.className='alert warn'; el.textContent=`CPU SPIKE: ${cpu}ms main thread — entity processing overload`; el.style.display='flex'; }
+  else if (gpu > 35) { el.className='alert warn'; el.textContent=`GPU HIGH: ${gpu}ms — consider reducing resolution or upscaling quality`; el.style.display='flex'; }
+  else el.style.display='none';
+}
+
+function addLog(time, msg, kind='info') {
+  allLogs.push({time, msg, kind});
+  const filter = document.getElementById('log-filter').value.toLowerCase();
+  if (filter && !msg.toLowerCase().includes(filter)) return;
+  const el = document.getElementById('log-list');
+  const div = document.createElement('div');
+  div.className = 'log-item '+kind;
+  div.innerHTML = `<span class="log-time">${time}</span><span class="log-msg">${msg.substring(0,140)}</span>`;
+  el.appendChild(div);
+  if (el.children.length > 300) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+  logCount++;
+  document.getElementById('v-logcount').textContent = logCount+' entries';
+}
+
+function filterLog() {
+  const filter = document.getElementById('log-filter').value.toLowerCase();
+  const el = document.getElementById('log-list');
+  el.innerHTML = '';
+  allLogs.filter(e => !filter || e.msg.toLowerCase().includes(filter))
+    .slice(-200).forEach(e => {
+      const div = document.createElement('div');
+      div.className='log-item '+e.kind;
+      div.innerHTML=`<span class="log-time">${e.time}</span><span class="log-msg">${e.msg.substring(0,140)}</span>`;
+      el.appendChild(div);
+    });
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() { document.getElementById('log-list').innerHTML=''; allLogs.length=0; logCount=0; document.getElementById('v-logcount').textContent='0 entries'; }
+function clearCharts() { ['fps','cpu','gpu','ft','labels'].forEach(k=>hist[k].length=0); cFps.data.labels=[]; cFps.data.datasets[0].data=[]; cTimes.data.labels=[]; cTimes.data.datasets[0].data=[]; cTimes.data.datasets[1].data=[]; cFps.update(); cTimes.update(); }
+function setPaused(v) { paused=v; document.getElementById('btn-live').classList.toggle('active',!v); document.getElementById('btn-pause').classList.toggle('active',v); }
+
+function exportCSV() {
+  const rows=[['Time','FPS','CPU_ms','GPU_ms','FrameTime_ms']];
+  for(let i=0;i<hist.fps.length;i++) rows.push([hist.labels[i],hist.fps[i],hist.cpu[i],hist.gpu[i],hist.ft[i]]);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.map(r=>r.join(',')).join('\n')],{type:'text/csv'}));
+  a.download='sc_perf_'+new Date().toISOString().slice(0,19).replace(/:/g,'-')+'.csv';
+  a.click();
+}
+
+function resetMetricDisplays() {
+  ['v-fps','v-ft','v-cpu','v-gpu'].forEach(id=>document.getElementById(id).textContent='--');
+  document.getElementById('v-fps-sub').textContent='avg -- · min -- · max --';
+  document.getElementById('v-bb').textContent='bottleneck: --';
+  document.getElementById('v-pid').textContent='PID --';
+  document.getElementById('alert-box').style.display='none';
+}
+function setConnUI(state) {
+  const dot = document.getElementById('dot');
+  const lbl = document.getElementById('conn-label');
+  const btn = document.getElementById('btn-connect');
+  const sim = document.getElementById('sim-badge');
+  if (state==='connected') {
+    dot.className='dot live'; lbl.textContent='LIVE'; btn.textContent='DISCONNECT'; btn.className='btn danger'; sim.style.display='none';
+    stopSim(); clearCharts(); resetMetricDisplays();
+  } else if (state==='connecting') {
+    dot.className='dot warn'; lbl.textContent='CONNECTING...'; btn.textContent='CANCEL'; btn.className='btn';
+    stopSim();
+  } else {
+    dot.className='dot'; lbl.textContent='DISCONNECTED'; btn.textContent='CONNECT'; btn.className='btn'; sim.style.display='';
+    document.getElementById('specs-line').textContent='CONNECT COMPANION TO DETECT SPECS';
+    clearCharts(); resetMetricDisplays(); startSim();
+  }
+}
+
+function toggleConnect() {
+  if (ws && ws.readyState <= 1) { ws.close(); return; }
+  const url = document.getElementById('ws-url').value.trim() || 'ws://localhost:8765';
+  setConnUI('connecting');
+  stopSim();
+  try {
+    ws = new WebSocket(url);
+    ws.onopen = () => { isConnected=true; setConnUI('connected'); addLog(ts(),'Companion connected','good'); };
+    ws.onclose = () => { isConnected=false; setConnUI('disconnected'); addLog(ts(),'Companion disconnected','warn'); };
+    ws.onerror = () => { setConnUI('disconnected'); addLog(ts(),'Connection failed — is sc_companion.py running?','error'); };
+    ws.onmessage = e => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.type==='perf') updateMetrics(d);
+        else if (d.type==='log') addLog(d.time||ts(), d.msg, d.kind||'info');
+        else if (d.type==='hello') {
+          addLog(ts(), d.msg+' | log: '+(d.log||'not found'), 'good');
+          if (d.specs) {
+            const s = d.specs;
+            const parts = [s.cpu, s.gpu, s.ram_gb ? s.ram_gb+'GB' : ''].filter(Boolean);
+            document.getElementById('specs-line').textContent = parts.join(' · ').toUpperCase();
+          }
+        }
+      } catch {}
+    };
+  } catch(e) { setConnUI('disconnected'); }
+}
+
+function ts() { return new Date().toLocaleTimeString('en-US',{hour12:false}); }
+
+function startSim() {
+  if (simTimer) return;
+  simTimer = setInterval(() => {
+    if (paused || isConnected) return;
+    const base = 55 + Math.sin(Date.now()/8000)*15;
+    const fps = Math.max(15, Math.round(base+(Math.random()-.5)*12));
+    const cpu = +((18+Math.random()*12+(fps<40?8:0)).toFixed(1));
+    const gpu = +((12+Math.random()*8).toFixed(1));
+    updateMetrics({ fps, cpu_ms:cpu, gpu_ms:gpu, bottleneck: cpu>gpu+3?'cpu':gpu>cpu+3?'gpu':'balanced', cpu_pct:Math.round(30+Math.random()*20), sys_ram_pct:Math.round(55+Math.random()*10), ram_mb:Math.round(14000+Math.random()*2000) });
+    if (Math.random()<0.06) {
+      const ev=[['Entity spawned','info'],['Shader compile','info'],['Packet loss warning','warn'],['Zone transition','good'],['Physics stall 11ms','warn']];
+      const [m,k]=ev[Math.floor(Math.random()*ev.length)];
+      addLog(ts(),m,k);
+    }
+  }, 2000);
+}
+function stopSim() { clearInterval(simTimer); simTimer=null; }
+
+addLog(ts(),'Dashboard loaded — running in simulation mode','good');
+addLog(ts(),'Run sc_companion.py on your PC then click CONNECT','info');
+startSim();
+</script>
+</body>
+</html>
